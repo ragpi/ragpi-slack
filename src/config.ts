@@ -15,14 +15,13 @@ const ConfigSchema = z.object({
     required_error: 'RAGPI_BASE_URL is required',
   }),
   RAGPI_API_KEY: z.string().optional(),
-  SLACK_SOURCES: z
+  RAGPI_SOURCES: z
     .string()
     .optional()
     .transform((str) => {
       if (!str) return [];
       return str.split(',').filter(Boolean);
     }),
-  SLACK_CHAT_MODEL: z.string().optional(),
 });
 
 function validateConfig() {

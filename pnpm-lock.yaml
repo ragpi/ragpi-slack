@@ -18,6 +18,9 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
+      '@slack/web-api':
+        specifier: ^7.8.0
+        version: 7.8.0
       '@types/node':
         specifier: ^22.7.5
         version: 22.13.4
