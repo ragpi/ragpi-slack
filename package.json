@@ -1,0 +1,33 @@
+{
+  "name": "ragpi-slack",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./dist/index.js",
+    "start:watch": "node --watch ./dist/index.js",
+    "build": "tsup ./src/index.ts",
+    "build:watch": "tsup ./src/index.ts --watch",
+    "dev": "pnpm build:watch & pnpm start:watch",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "gts lint",
+    "fix": "gts fix",
+    "clean": "gts clean",
+    "purge": "rm -rf node_modules && rm -rf dist",
+    "compile": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@slack/bolt": "^4.2.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "gts": "^6.0.2",
+    "tsup": "^8.3.6",
+    "typescript": "^5.6.3"
+  }
+}
