@@ -2,9 +2,6 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const ConfigSchema = z.object({
-  SLACK_SIGNING_SECRET: z.string({
-    required_error: 'SLACK_SIGNING_SECRET is required',
-  }),
   SLACK_BOT_TOKEN: z.string({
     required_error: 'SLACK_BOT_TOKEN is required',
   }),
