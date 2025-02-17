@@ -50,6 +50,11 @@ const fetchChatResponse = async (
 };
 
 export const handleMessage = async ({ app, message }: HandleMessageArgs) => {
+  app.logger.debug(
+    // @ts-expect-error user should exist on message
+    `Processing message from user ${message?.user || 'unknown'} in channel ${message.channel}`,
+  );
+
   try {
     const newMessage = await app.client.chat.postMessage({
       channel: message.channel,
@@ -60,7 +65,7 @@ export const handleMessage = async ({ app, message }: HandleMessageArgs) => {
     const chatHistory = await app.client.conversations.replies({
       channel: message.channel,
       // @ts-expect-error thread_ts should exist when message is in a thread
-      ts: message.thread_ts || message.ts,
+      ts: message?.thread_ts || message.ts,
     });
 
     const messages = formatChatHistory(chatHistory);
@@ -85,6 +90,7 @@ export const handleMessage = async ({ app, message }: HandleMessageArgs) => {
         text: response.message,
       });
     }
+    app.logger.debug(`Successfully responded in channel ${message.channel}`);
   } catch (error) {
     console.error(error);
     await app.client.chat.postMessage({
