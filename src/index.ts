@@ -7,9 +7,11 @@ const app = new App({
   socketMode: true,
   token: config.SLACK_BOT_TOKEN,
   appToken: config.SLACK_APP_TOKEN,
+  logLevel: config.LOG_LEVEL,
 });
 
-app.message('', async ({ message }) => handleMessage({ app, message }));
+const eventName = config.SLACK_REQUIRE_MENTION ? 'app_mention' : 'message';
+app.event(eventName, async ({ event }) => await handleMessage({ app, event }));
 
 void (async () => {
   await app.start(process.env.PORT || 3000);

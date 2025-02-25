@@ -1,12 +1,16 @@
 import { App, KnownEventFromType } from '@slack/bolt';
-// eslint-disable-next-line n/no-unpublished-import
-import { type ConversationsRepliesResponse } from '@slack/web-api';
+import {
+  Logger,
+  type AppMentionEvent,
+  type ConversationsRepliesResponse,
+  // eslint-disable-next-line n/no-unpublished-import
+} from '@slack/web-api';
 import { config } from './config';
 import { ChatMessage, ChatRequest, ChatResponse } from './types';
 
 interface HandleMessageArgs {
   app: App;
-  message: KnownEventFromType<'message'>;
+  event: KnownEventFromType<'message'> | AppMentionEvent;
 }
 
 const formatChatHistory = (
@@ -30,6 +34,7 @@ const formatChatHistory = (
 
 const fetchChatResponse = async (
   request: ChatRequest,
+  logger: Logger,
 ): Promise<ChatResponse> => {
   const response = await fetch(`${config.RAGPI_BASE_URL}/chat`, {
     method: 'POST',
@@ -44,28 +49,33 @@ const fetchChatResponse = async (
     return response.json() as Promise<ChatResponse>;
   } else {
     const error = await response.json();
-    console.error('Error:', JSON.stringify(error, null, 2));
+    logger.error('Error:', JSON.stringify(error, null, 2));
     throw new Error('An error occurred while fetching chat response');
   }
 };
 
-export const handleMessage = async ({ app, message }: HandleMessageArgs) => {
+export const handleMessage = async ({ app, event }: HandleMessageArgs) => {
+  if (event.subtype) {
+    app.logger.debug(`Ignoring message subtype: ${event.subtype}`);
+    return;
+  }
+
   app.logger.debug(
-    // @ts-expect-error user should exist on message
-    `Processing message from user ${message?.user || 'unknown'} in channel ${message.channel}`,
+    // @ts-expect-error user should exist on event
+    `Processing message from user ${event?.user || 'unknown'} in channel ${event.channel}`,
   );
 
   try {
     const newMessage = await app.client.chat.postMessage({
-      channel: message.channel,
-      thread_ts: message.ts,
+      channel: event.channel,
+      thread_ts: event.ts,
       text: '_Thinking..._',
     });
 
     const chatHistory = await app.client.conversations.replies({
-      channel: message.channel,
-      // @ts-expect-error thread_ts should exist when message is in a thread
-      ts: message?.thread_ts || message.ts,
+      channel: event.channel,
+      // @ts-expect-error thread_ts should exist when event is in a thread
+      ts: event?.thread_ts || event.ts,
     });
 
     const messages = formatChatHistory(chatHistory);
@@ -75,27 +85,27 @@ export const handleMessage = async ({ app, message }: HandleMessageArgs) => {
       messages,
     };
 
-    const response = await fetchChatResponse(request);
+    const response = await fetchChatResponse(request, app.logger);
 
     if (newMessage.ts) {
       await app.client.chat.update({
-        channel: message.channel,
+        channel: event.channel,
         ts: newMessage.ts,
         text: response.message,
       });
     } else {
       await app.client.chat.postMessage({
-        channel: message.channel,
-        thread_ts: message.ts,
+        channel: event.channel,
+        thread_ts: event.ts,
         text: response.message,
       });
     }
-    app.logger.debug(`Successfully responded in channel ${message.channel}`);
+    app.logger.debug(`Successfully responded in channel ${event.channel}`);
   } catch (error) {
-    console.error(error);
+    app.logger.error(error);
     await app.client.chat.postMessage({
-      channel: message.channel,
-      thread_ts: message.ts,
+      channel: event.channel,
+      thread_ts: event.ts,
       text: 'Sorry, an error occurred. Please try again later.',
     });
   }

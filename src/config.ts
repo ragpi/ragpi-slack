@@ -1,3 +1,4 @@
+import { LogLevel } from '@slack/bolt';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -19,6 +20,19 @@ const ConfigSchema = z.object({
       if (!str) return [];
       return str.split(',').filter(Boolean);
     }),
+  SLACK_REQUIRE_MENTION: z
+    .string()
+    .transform((str) => {
+      if (!str) return false;
+      return ['true', 'True', 'TRUE'].includes(str);
+    })
+    .default('false'),
+  LOG_LEVEL: z
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toLowerCase() : val),
+      z.nativeEnum(LogLevel),
+    )
+    .default(LogLevel.INFO),
 });
 
 function validateConfig() {
