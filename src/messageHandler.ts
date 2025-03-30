@@ -54,6 +54,26 @@ const fetchChatResponse = async (
   }
 };
 
+const markdownToSlack = (markdownText: string): string => {
+  let slackText = markdownText;
+
+  // Remove language specifier from code blocks
+  slackText = slackText.replace(/```[a-zA-Z]+\n/g, '```');
+
+  // Convert links: [text](url) to <url|text>
+  slackText = slackText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<$2|$1>');
+
+  // Convert bold: **text** or __text__ to *text*
+  slackText = slackText.replace(/(\*\*|__)(.*?)\1/g, '*$2*');
+
+  // Handle headings (convert to bold)
+  slackText = slackText.replace(/^# (.*?)$/gm, '*$1*');
+  slackText = slackText.replace(/^## (.*?)$/gm, '*$1*');
+  slackText = slackText.replace(/^### (.*?)$/gm, '*$1*');
+
+  return slackText;
+};
+
 export const handleMessage = async ({ app, event }: HandleMessageArgs) => {
   if (event.subtype) {
     app.logger.debug(`Ignoring message subtype: ${event.subtype}`);
@@ -87,17 +107,19 @@ export const handleMessage = async ({ app, event }: HandleMessageArgs) => {
 
     const response = await fetchChatResponse(request, app.logger);
 
+    const formattedMessage = markdownToSlack(response.message);
+
     if (newMessage.ts) {
       await app.client.chat.update({
         channel: event.channel,
         ts: newMessage.ts,
-        text: response.message,
+        text: formattedMessage,
       });
     } else {
       await app.client.chat.postMessage({
         channel: event.channel,
         thread_ts: event.ts,
-        text: response.message,
+        text: formattedMessage,
       });
     }
     app.logger.debug(`Successfully responded in channel ${event.channel}`);
